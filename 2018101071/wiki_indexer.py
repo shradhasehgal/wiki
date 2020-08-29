@@ -5,6 +5,8 @@ from nltk.corpus import stopwords
 import re
 from datetime import datetime
 
+total_count = 0
+
 class ParsingHandler(xml.sax.ContentHandler):
     def __init__(self):
         self.text = ""
@@ -33,9 +35,13 @@ stems = {}
 stemmer = SnowballStemmer("english")
 overallDict = {}
 
-def tokenize(text):
+def tokenize(text, all):
     words = re.split(r'[^a-z0-9]+', text)
     filtered = []
+    global total_count
+    if all:
+        total_count += len(words)
+
     for w in words: 
         if w not in stop_words:
             if w not in stems:
@@ -51,15 +57,15 @@ def tokenize(text):
 def index(title, text, docID):
     title = title.lower()
     text = text.lower()
-    titleWords = tokenize(title)  
-    bodyWords = tokenize(text)
+    titleWords = tokenize(title, 1)  
+    bodyWords = tokenize(text, 1)
     
     # Infobox
     infoboxWords = []
     infobox = text.split("{{infobox")
     if len(infobox) > 1:
-        infobox = infobox[1].split("}}", 1)
-        infoboxWords = tokenize(str(infobox[0]))
+        infobox = infobox[1].split("}}\n", 1)
+        infoboxWords = tokenize(str(infobox[0]), 0)
 
 
     # Category
@@ -68,7 +74,7 @@ def index(title, text, docID):
     if categories:
         categories = " ".join(categories)
         # print(categories)
-        categoryWords = tokenize(categories)
+        categoryWords = tokenize(categories, 0)
         # print(categoryWords)
 
     # Links
@@ -80,7 +86,7 @@ def index(title, text, docID):
         for line in links:
             if line and line[0] == '*':
                 linksInfo += line+" "
-        linkWords = tokenize(linksInfo)
+        linkWords = tokenize(linksInfo, 0)
 
 
     # References
@@ -93,7 +99,7 @@ def index(title, text, docID):
             if ("[[category" in line) or ("==" in line) or ("defaultsort" in line):
                 break
             refsInfo += line+"\n"
-        refWords = tokenize(refsInfo)
+        refWords = tokenize(refsInfo, 0)
 
     for word in titleWords:
         # print("ti ",word)
@@ -146,7 +152,7 @@ def index(title, text, docID):
         if word in overallDict and docID in overallDict[word]:
              overallDict[word][docID][5] += 1
         elif word in overallDict:
-            overallDict[word][docID] =[0, 0, 0, 0, 0, 1]
+            overallDict[word][docID] = [0, 0, 0, 0, 0, 1]
         else:
             overallDict[word]= {docID: [0, 0, 0, 0, 0, 1]}
         
@@ -168,18 +174,23 @@ f = open("index.txt", "a")
 for word,key in overallDict.items():
     f.write(word + ":")
     for doc, value in key.items():
-        f.write(str(doc))
+        f.write("d"+str(doc))
         for i in range(6):
             # print(overallDict[word][doc])
             if overallDict[word][doc][i] > 0:
                 f.write(wut[i]+str(overallDict[word][doc][i]))
-        f.write('|')
     f.write("\n")
 f.close()
 
 parse_end = datetime.now()
 print("time to parse is ", parse_end-begin)
 
+stats = open("invertedindex_stat.txt", "a")
+stats.write(str(total_count) + "\n")
+stats.write(str(len(overallDict)))
 
 # print(stop_words)
 
+# indexRead = open("index.txt", "r")
+# for line in indexRead:
+#     print(line + "\n\n")
