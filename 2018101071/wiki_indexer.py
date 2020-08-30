@@ -6,7 +6,6 @@ import re
 from datetime import datetime
 import multiprocessing 
 
-total_count = 0
 articles = []
 
 class Article():
@@ -28,7 +27,6 @@ class ParsingHandler(xml.sax.ContentHandler):
     def endElement(self, tag):
         if tag == "page":
             articles.append(Article(self.title, self.text, self.docID))
-            # index(articles[])
             self.title = ""
             self.text = ""
             self.docID += 1
@@ -44,12 +42,27 @@ stems = {}
 stemmer = Stemmer.Stemmer("english")
 overallDict = {}
 
-def tokenize(text, all):
+def tokenize_count(text):
     words = re.split(r'[^a-z0-9]+', text)
     filtered = []
-    global total_count
-    if all:
-        total_count += len(words)
+    count = len(words)
+
+    for w in words: 
+        if w not in stop_words:
+            if w not in stems:
+                if len(w) > 0:
+                    stemmed_w = stemmer.stemWord(w)
+                    filtered.append(stemmed_w)
+                    stems[w] = stemmed_w
+            else:
+                filtered.append(stems[w])
+
+    return filtered, count
+
+def tokenize(text):
+    words = re.split(r'[^a-z0-9]+', text)
+    filtered = []
+    # global total_count
 
     for w in words: 
         if w not in stop_words:
@@ -64,18 +77,20 @@ def tokenize(text, all):
     return filtered
 
 def index(article):
+    total_count = 0
     title = article.title.lower()
     text = article.text.lower()
     docID = article.docID
-    titleWords = tokenize(title, 1)  
-    bodyWords = tokenize(text, 1)
-    
+    titleWords, count = tokenize_count(title)  
+    total_count += count
+    bodyWords, count = tokenize_count(text)
+    total_count += count
     # Infobox
     infoboxWords = []
     infobox = text.split("{{infobox")
     if len(infobox) > 1:
         infobox = infobox[1].split("}}\n", 1)
-        infoboxWords = tokenize(str(infobox[0]), 0)
+        infoboxWords = tokenize(str(infobox[0]))
 
 
     # Category
@@ -84,7 +99,7 @@ def index(article):
     if categories:
         categories = " ".join(categories)
         # print(categories)
-        categoryWords = tokenize(categories, 0)
+        categoryWords = tokenize(categories)
         # print(categoryWords)
 
     # Links
@@ -96,7 +111,7 @@ def index(article):
         for line in links:
             if line and line[0] == '*':
                 linksInfo += line+" "
-        linkWords = tokenize(linksInfo, 0)
+        linkWords = tokenize(linksInfo)
 
 
     # References
@@ -109,7 +124,7 @@ def index(article):
             if ("[[category" in line) or ("==" in line) or ("defaultsort" in line):
                 break
             refsInfo += line+"\n"
-        refWords = tokenize(refsInfo, 0)
+        refWords = tokenize(refsInfo)
 
     overallDict = {}
     addToList(titleWords, 0, overallDict)
@@ -118,7 +133,7 @@ def index(article):
     addToList(linkWords, 3, overallDict)
     addToList(refWords, 4, overallDict)
     addToList(bodyWords, 5, overallDict)
-    return overallDict, docID
+    return overallDict, docID, total_count
 
 def addToList(words, index, overallDict):
     for word in words:
@@ -141,8 +156,10 @@ pool = multiprocessing.Pool()
 outputs = pool.map(index, articles)
 # print(outputs[0])
 
+total_count = 0
 overallDict = {}
 for article in outputs:
+    total_count += article[2]
     for key,value in article[0].items():
         if key in overallDict and article[1] in overallDict[key]:
             for index in range(6):
@@ -165,9 +182,10 @@ for word,post in overallDict.items():
     f.write("\n")
 f.close()
 
-parse_end = datetime.now()
-print("time to parse is ", parse_end-begin)
 
 stats = open("invertedindex_stat.txt", "a")
 stats.write(str(total_count) + "\n")
 stats.write(str(len(overallDict)))
+parse_end = datetime.now()
+print("time to parse is ", parse_end-begin)
+
