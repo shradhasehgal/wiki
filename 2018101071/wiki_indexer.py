@@ -1,9 +1,10 @@
 import sys
 import xml.sax
-from nltk.stem.snowball import SnowballStemmer
+import Stemmer
 from nltk.corpus import stopwords 
 import re
 from datetime import datetime
+# import multiprocessing 
 
 total_count = 0
 
@@ -32,7 +33,7 @@ class ParsingHandler(xml.sax.ContentHandler):
 
 stop_words = set(stopwords.words('english')) 
 stems = {}
-stemmer = SnowballStemmer("english")
+stemmer = Stemmer.Stemmer("english")
 overallDict = {}
 
 def tokenize(text, all):
@@ -46,7 +47,7 @@ def tokenize(text, all):
         if w not in stop_words:
             if w not in stems:
                 if len(w) > 0:
-                    stemmed_w = stemmer.stem(w)
+                    stemmed_w = stemmer.stemWord(w)
                     filtered.append(stemmed_w)
                     stems[w] = stemmed_w
             else:
@@ -167,7 +168,11 @@ Handler = ParsingHandler()
 parser.setContentHandler(Handler)
 parser.parse(wikiDump)
 # print(overallDict)
-# overallDict = {'4529332': {19796: [0, 0, 0, 0, 0, 1]}, 'tardisk': {19796: [0, 0, 0, 0, 0, 4]}, 'tardishir': {19796: [0, 0, 0, 0, 0, 2]}, '23639332': {19796: [0, 0, 0, 0, 0, 2]}, '20100223004654': {19796: [0, 0, 0, 0, 0, 1]}, 'tardiscam': {19796: [0, 0, 0, 0, 0, 1]}, 'retardi': {19796: [0, 0, 0, 0, 0, 3]}, '10940401': {19796: [0, 0, 0, 0, 0, 1]}, '6705231': {19796: [0, 0, 0, 0, 0, 1]}, '35801': {19796: [0, 0, 0, 0, 0, 1]}, 'wabac': {19796: [0, 0, 0, 0, 0, 1]}, 'hammerspac': {19796: [0, 0, 0, 0, 0, 1]}}
+# overallDict = {'4529332': {19796: [0, 0, 0# print(stop_words)
+
+# indexRead = open("index.txt", "r")
+# for line in indexRead:
+#     print(line + "\n\n"), 0, 0, 1]}, 'tardisk': {19796: [0, 0, 0, 0, 0, 4]}, 'tardishir': {19796: [0, 0, 0, 0, 0, 2]}, '23639332': {19796: [0, 0, 0, 0, 0, 2]}, '20100223004654': {19796: [0, 0, 0, 0, 0, 1]}, 'tardiscam': {19796: [0, 0, 0, 0, 0, 1]}, 'retardi': {19796: [0, 0, 0, 0, 0, 3]}, '10940401': {19796: [0, 0, 0, 0, 0, 1]}, '6705231': {19796: [0, 0, 0, 0, 0, 1]}, '35801': {19796: [0, 0, 0, 0, 0, 1]}, 'wabac': {19796: [0, 0, 0, 0, 0, 1]}, 'hammerspac': {19796: [0, 0, 0, 0, 0, 1]}}
 
 wut = ['t', 'i', 'c', 'l', 'r', 'b']
 f = open("index.txt", "a")
