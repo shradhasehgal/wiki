@@ -4,9 +4,16 @@ import Stemmer
 from nltk.corpus import stopwords 
 import re
 from datetime import datetime
-# import multiprocessing 
+import multiprocessing 
 
 total_count = 0
+articles = []
+
+class Article():
+    def __init__(self, x, y, z):
+        self.title = x
+        self.text = y
+        self.docID = z
 
 class ParsingHandler(xml.sax.ContentHandler):
     def __init__(self):
@@ -20,7 +27,8 @@ class ParsingHandler(xml.sax.ContentHandler):
 
     def endElement(self, tag):
         if tag == "page":
-            index(self.title, self.text, self.docID)
+            articles.append(Article(self.title, self.text, self.docID))
+            # index(articles[])
             self.title = ""
             self.text = ""
             self.docID += 1
@@ -55,9 +63,10 @@ def tokenize(text, all):
 
     return filtered
 
-def index(title, text, docID):
-    title = title.lower()
-    text = text.lower()
+def index(article):
+    title = article.title.lower()
+    text = article.text.lower()
+    docID = article.docID
     titleWords = tokenize(title, 1)  
     bodyWords = tokenize(text, 1)
     
@@ -102,86 +111,55 @@ def index(title, text, docID):
             refsInfo += line+"\n"
         refWords = tokenize(refsInfo, 0)
 
-    for word in titleWords:
-        # print("ti ",word)
-        if word in overallDict and docID in overallDict[word]:
-            overallDict[word][docID][0] += 1
-        elif word in overallDict:
-            overallDict[word][docID] =[1, 0, 0, 0, 0, 0]
-        else:
-            overallDict[word] = {docID: [1, 0, 0, 0, 0, 0]}
-    
-    for word in infoboxWords :
-        # print("in ", word)
-        if word in overallDict  and docID in overallDict[word]:
-            overallDict[word][docID][1] += 1
-        elif word in overallDict:
-            overallDict[word][docID] =[0, 1, 0, 0, 0, 0]
-        else:
-            overallDict[word] = {docID: [0, 1, 0, 0, 0, 0]}
+    overallDict = {}
+    addToList(titleWords, 0, overallDict)
+    addToList(infoboxWords, 1, overallDict)
+    addToList(categoryWords, 2, overallDict)
+    addToList(linkWords, 3, overallDict)
+    addToList(refWords, 4, overallDict)
+    addToList(bodyWords, 5, overallDict)
+    return overallDict, docID
 
-    for word in categoryWords:
-        # print("ca ", word)
-        if word in overallDict  and docID in overallDict[word]:
-            overallDict[word][docID][2] += 1
-
-        elif word in overallDict:
-            overallDict[word][docID] =[0, 0, 1, 0, 0, 0]
+def addToList(words, index, overallDict):
+    for word in words:
+        if word in overallDict:
+            overallDict[word][index] += 1
         else:
-            overallDict[word]= {docID: [0, 0, 1, 0, 0, 0]}
-
-    for word in linkWords:
-        # print(" li ", word)
-        if word in overallDict and docID in overallDict[word]:
-             overallDict[word][docID][3] += 1
-        elif word in overallDict:
-            overallDict[word][docID] =[0, 0, 0, 1, 0, 0]
-        else:
-            overallDict[word] =  {docID: [0, 0, 0, 1, 0, 0]}
-
-    for word in refWords:
-        # print("ref ", word)
-        if word in overallDict and docID in overallDict[word]:
-             overallDict[word][docID][4] += 1
-        elif word in overallDict:
-            overallDict[word][docID] =[0, 0, 0, 0, 1, 0]
-        else:
-            overallDict[word]= {docID: [0, 0, 0, 0, 1, 0]}
-
-    for word in bodyWords:
-        # print("ref ", word)
-        if word in overallDict and docID in overallDict[word]:
-             overallDict[word][docID][5] += 1
-        elif word in overallDict:
-            overallDict[word][docID] = [0, 0, 0, 0, 0, 1]
-        else:
-            overallDict[word]= {docID: [0, 0, 0, 0, 0, 1]}
+            overallDict[word] = [0, 0, 0, 0, 0, 0]
+            overallDict[word][index] = 1
         
 
 wikiDump = sys.argv[1]
-# create an XMLReader
 begin = datetime.now()
 parser = xml.sax.make_parser()
-# turn off namepsaces
 parser.setFeature(xml.sax.handler.feature_namespaces, 0)
 Handler = ParsingHandler()
 parser.setContentHandler(Handler)
 parser.parse(wikiDump)
+
+pool = multiprocessing.Pool()
+outputs = pool.map(index, articles)
+# print(outputs[0])
+
+overallDict = {}
+for article in outputs:
+    for key,value in article[0].items():
+        if key in overallDict and article[1] in overallDict[key]:
+            for index in range(6):
+                overallDict[key][article[1]][index] += value[index]
+        elif key in overallDict:
+            overallDict[key][article[1]] = value
+        else:
+            overallDict[key] = {article[1]: value}
+
 # print(overallDict)
-# overallDict = {'4529332': {19796: [0, 0, 0# print(stop_words)
-
-# indexRead = open("index.txt", "r")
-# for line in indexRead:
-#     print(line + "\n\n"), 0, 0, 1]}, 'tardisk': {19796: [0, 0, 0, 0, 0, 4]}, 'tardishir': {19796: [0, 0, 0, 0, 0, 2]}, '23639332': {19796: [0, 0, 0, 0, 0, 2]}, '20100223004654': {19796: [0, 0, 0, 0, 0, 1]}, 'tardiscam': {19796: [0, 0, 0, 0, 0, 1]}, 'retardi': {19796: [0, 0, 0, 0, 0, 3]}, '10940401': {19796: [0, 0, 0, 0, 0, 1]}, '6705231': {19796: [0, 0, 0, 0, 0, 1]}, '35801': {19796: [0, 0, 0, 0, 0, 1]}, 'wabac': {19796: [0, 0, 0, 0, 0, 1]}, 'hammerspac': {19796: [0, 0, 0, 0, 0, 1]}}
-
 wut = ['t', 'i', 'c', 'l', 'r', 'b']
 f = open("index.txt", "a")
-for word,key in overallDict.items():
+for word,post in overallDict.items():
     f.write(word + ":")
-    for doc, value in key.items():
+    for doc, value in post.items():
         f.write("d"+str(doc))
         for i in range(6):
-            # print(overallDict[word][doc])
             if overallDict[word][doc][i] > 0:
                 f.write(wut[i]+str(overallDict[word][doc][i]))
     f.write("\n")
@@ -193,9 +171,3 @@ print("time to parse is ", parse_end-begin)
 stats = open("invertedindex_stat.txt", "a")
 stats.write(str(total_count) + "\n")
 stats.write(str(len(overallDict)))
-
-# print(stop_words)
-
-# indexRead = open("index.txt", "r")
-# for line in indexRead:
-#     print(line + "\n\n")
