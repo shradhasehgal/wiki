@@ -29,8 +29,3 @@ Search utilizes the titles folder and final index folder mentioned above.
 - I search for the file that has the query term's posting list by binary searching on the aforementioned first words array
 - I calculate the tf-idf score based on different weights allotted for t,b,i,r,l,c
 - I sort the documents and display the k-best documents
-
-## Notes
-
-- Total docs : 9829059
-- Index size: 12.6GB (approximation as index on which code was tested before submission was half the size)
