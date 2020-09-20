@@ -1,0 +1,4 @@
+12.6 
+3000
+30000000
+*approximatations have been made as half the index was created
